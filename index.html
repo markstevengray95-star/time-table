@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#0b1220">
+<title>Teacher Timetable Manager</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/pdfjs-dist@4.10.38/build/pdf.min.mjs" type="module"></script>
+<script src="https://cdn.jsdelivr.net/npm/mammoth@1.8.0/mammoth.browser.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+<link rel="stylesheet" href="styles.css">
+</head>
+<body>
+<div class="app">
+<aside class="sidebar">
+  <div class="brand"><div class="logo">TT</div><div><h1>Teacher Timetable</h1><p>Smart timetable manager</p></div></div>
+  <div class="nav">
+    <button class="active" data-page="week"><span>▦</span> Week</button>
+    <button data-page="import"><span>⇧</span> Smart Import</button>
+    <button data-page="lessons"><span>≡</span> Lessons</button>
+    <button data-page="settings"><span>⚙</span> Settings</button>
+  </div>
+  <div class="side-card"><b style="color:var(--text)">Import accuracy</b><br><br>Images and PDFs are read using their visual layout. Every imported lesson is reviewed before it is added, so OCR mistakes cannot silently corrupt your timetable.</div>
+</aside>
+<main class="main">
+  <div class="topbar"><div><h2 id="pageTitle">Your week</h2><p id="pageSub">A clear view of lessons, rooms and classes.</p></div><div class="actions"><button class="btn" onclick="window.print()">Print</button><button class="btn" onclick="exportData()">Backup</button><button class="btn primary" onclick="openLessonModal()">+ Add lesson</button></div></div>
+
+  <section class="page active" id="page-week">
+    <div class="stats"><div class="stat"><small>Lessons this week</small><strong id="statLessons">0</strong></div><div class="stat"><small>Teaching time</small><strong id="statHours">0h</strong></div><div class="stat"><small>Classes</small><strong id="statClasses">0</strong></div><div class="stat"><small>Today</small><strong id="statToday">0</strong></div></div>
+    <div class="card"><h3>Weekly timetable</h3><p class="sub">Click any lesson to edit it. Your timetable is saved on this device.</p><div class="week-wrap"><div class="week" id="weekGrid"></div></div></div>
+  </section>
+
+  <section class="page" id="page-import">
+    <div class="card"><h3>Smart timetable import</h3><p class="sub">Upload an image, screenshot, PDF, Word document, spreadsheet, CSV or text file. Files stay in your browser; the app extracts and reviews the timetable locally.</p>
+      <div class="drop" id="dropZone"><div class="big">⇧</div><b>Drop your timetable here</b><p>or choose one or more files</p><button class="btn primary" onclick="document.getElementById('fileInput').click()">Choose files</button><input id="fileInput" type="file" multiple accept="image/*,.pdf,.docx,.xlsx,.xls,.csv,.txt,text/plain,application/pdf,application/vnd.openxmlformats-officedocument.wordprocessingml.document,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"></div>
+      <div class="support"><span class="pill">Images + screenshots</span><span class="pill">PDF</span><span class="pill">Word .docx</span><span class="pill">Excel / CSV</span><span class="pill">Text</span></div>
+      <div id="importStatus" class="notice info" style="display:none"></div><div class="progress" id="progressWrap" style="display:none"><div id="progressBar"></div></div>
+    </div>
+    <div class="card"><h3>Or paste timetable text</h3><p class="sub">Useful if your school system lets you copy the timetable but not export it.</p><div class="field"><textarea id="pasteText" placeholder="Example:&#10;Monday&#10;09:00 Physics 10A Lab 2&#10;10:00 Chemistry 11B Lab 1&#10;&#10;Tuesday..."></textarea></div><button class="btn" onclick="parsePastedText()">Analyse pasted text</button></div>
+    <div class="card" id="reviewCard" style="display:none"><div style="display:flex;justify-content:space-between;gap:12px;align-items:flex-start;flex-wrap:wrap"><div><h3>Review detected lessons</h3><p class="sub">Nothing is added until you press “Add selected lessons”. Correct any highlighted fields first.</p></div><div class="actions"><button class="btn" onclick="selectAllCandidates(true)">Select all</button><button class="btn" onclick="selectAllCandidates(false)">Clear</button><button class="btn good" onclick="applyCandidates()">Add selected lessons</button></div></div><div id="reviewSummary"></div><div class="review-scroll"><table class="review"><thead><tr><th>Use</th><th>Day</th><th>Start</th><th>End</th><th>Subject</th><th>Class</th><th>Room</th><th>Confidence</th></tr></thead><tbody id="reviewBody"></tbody></table></div><details style="margin-top:12px"><summary style="font-size:11px;color:var(--muted);cursor:pointer">Show extracted text</summary><div class="raw" id="rawExtract"></div></details></div>
+    <div class="card"><h3>How Smart Import protects accuracy</h3><p class="sub">The parser uses multiple signals instead of assuming every school uses the same timetable format.</p><div class="hint-grid"><div class="hint"><b>1. Reads layout</b><p>Weekday headings and time/period rows are detected using table structure or OCR coordinates.</p></div><div class="hint"><b>2. Classifies cell content</b><p>Subject, class/group and room labels are separated using school-style patterns and aliases.</p></div><div class="hint"><b>3. Requires review</b><p>Low-confidence fields are flagged so an OCR error never becomes a hidden timetable error.</p></div></div></div>
+  </section>
+
+  <section class="page" id="page-lessons"><div class="card"><div style="display:flex;justify-content:space-between;gap:12px;align-items:center;flex-wrap:wrap"><div><h3>All lessons</h3><p class="sub">Search, edit or remove lessons.</p></div><div style="min-width:240px" class="field"><input id="lessonSearch" placeholder="Search subject, class or room" oninput="renderLessonList()"></div></div><div id="lessonList" class="lesson-list"></div></div></section>
+
+  <section class="page" id="page-settings">
+    <div class="two"><div class="card"><h3>School day</h3><p class="sub">These periods are used to map timetable rows that only say “Period 1”, “P2”, etc.</p><div id="periodEditor"></div><button class="btn" onclick="addPeriod()">+ Add period</button><button class="btn primary" onclick="savePeriods()" style="margin-left:6px">Save periods</button></div><div class="card"><h3>Data tools</h3><p class="sub">Back up, restore or reset data stored in this browser.</p><div class="actions"><button class="btn" onclick="exportData()">Download backup</button><button class="btn" onclick="document.getElementById('restoreInput').click()">Restore backup</button><input id="restoreInput" type="file" accept="application/json,.json" style="display:none" onchange="restoreData(this.files[0])"><button class="btn danger" onclick="resetApp()">Reset app</button></div><div class="notice info" style="margin-top:14px">Tip: after a successful timetable import, download a backup once. It gives you a clean restore point if you experiment with later imports.</div></div></div>
+  </section>
+</main>
+</div>
+
+<div class="modal-bg" id="lessonModal"><div class="modal"><h3 id="modalTitle">Add lesson</h3><input type="hidden" id="editId"><div class="two"><div class="field"><label>Day</label><select id="fDay"></select></div><div class="field"><label>Subject</label><input id="fSubject" placeholder="Physics"></div></div><div class="two"><div class="field"><label>Start</label><input id="fStart" type="time"></div><div class="field"><label>End</label><input id="fEnd" type="time"></div></div><div class="two"><div class="field"><label>Class / group</label><input id="fClass" placeholder="10A"></div><div class="field"><label>Room</label><input id="fRoom" placeholder="Lab 2"></div></div><div class="field"><label>Notes</label><textarea id="fNotes" style="min-height:70px"></textarea></div><div class="modal-actions"><button class="btn danger" id="deleteLessonBtn" style="margin-right:auto;display:none" onclick="deleteCurrentLesson()">Delete</button><button class="btn" onclick="closeLessonModal()">Cancel</button><button class="btn primary" onclick="saveLessonFromModal()">Save lesson</button></div></div></div>
+<div class="toast" id="toast"></div>
+<script src="app.js"></script>
+</body>
+</html>
