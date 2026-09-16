@@ -1,0 +1,175 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#0b1220">
+<title>Mark Gray – Teacher Timetable</title>
+<style>
+:root{--bg:#0b1220;--panel:#111b2e;--panel2:#17233a;--line:#263550;--text:#e8eef8;--muted:#93a4bd;--brand:#7c8cff;--brand2:#54d2c7;--good:#5fdb9b;--danger:#ff7a90}
+*{box-sizing:border-box} body{margin:0;font-family:Inter,system-ui,-apple-system,Segoe UI,sans-serif;background:radial-gradient(circle at 10% 0,#15284b 0,transparent 28%),var(--bg);color:var(--text);min-height:100vh}
+button,input,select,textarea{font:inherit} button{cursor:pointer}
+.app{max-width:1500px;margin:0 auto;padding:22px}
+.top{display:flex;justify-content:space-between;gap:16px;align-items:flex-start;flex-wrap:wrap;margin-bottom:18px}
+h1{margin:0;font-size:28px} .sub{color:var(--muted);font-size:13px;margin-top:6px}
+.actions{display:flex;gap:8px;flex-wrap:wrap}
+.btn{border:1px solid var(--line);background:var(--panel2);color:var(--text);padding:10px 13px;border-radius:10px;font-weight:700}
+.btn.primary{background:linear-gradient(135deg,var(--brand),#6978f4);border-color:transparent}
+.btn.good{background:rgba(95,219,155,.12);border-color:rgba(95,219,155,.35);color:#baf3d2}
+.btn.danger{background:rgba(255,122,144,.1);border-color:rgba(255,122,144,.35);color:#ffc0cb}
+.card{border:1px solid var(--line);background:rgba(17,27,46,.94);border-radius:16px;padding:16px;margin-bottom:16px;box-shadow:0 18px 50px rgba(0,0,0,.25)}
+.weekbar{display:flex;align-items:center;gap:8px;flex-wrap:wrap} .pill{border:1px solid var(--line);padding:6px 9px;border-radius:999px;color:var(--muted);font-size:11px}
+.stats{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin:16px 0}
+.stat{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:14px} .stat small{color:var(--muted);font-weight:700} .stat strong{display:block;font-size:25px;margin-top:6px}
+.wrap{overflow:auto;border:1px solid var(--line);border-radius:14px}
+.week{min-width:920px;display:grid;grid-template-columns:105px repeat(5,minmax(155px,1fr));gap:1px;background:var(--line)}
+.week>div{background:var(--panel);min-height:74px;padding:8px} .head{background:#15223a!important;text-align:center;min-height:auto!important;font-weight:800;font-size:12px;position:sticky;top:0;z-index:2}
+.time{background:#0f192b!important;color:var(--muted);font-size:11px;font-weight:800}
+.lesson{border:1px solid rgba(124,140,255,.28);border-left:4px solid var(--brand);background:rgba(124,140,255,.09);border-radius:9px;padding:8px;margin-bottom:6px}
+.lesson b{display:block;font-size:12px} .lesson span{display:block;color:var(--muted);font-size:10px;margin-top:4px}
+.activity{border-left-color:var(--brand2);background:rgba(84,210,199,.08)}
+.empty{color:#607089;text-align:center;padding-top:14px;font-size:11px}
+.list{display:grid;gap:8px} .row{display:grid;grid-template-columns:105px 1fr auto;gap:12px;align-items:center;border:1px solid var(--line);background:#0f192b;border-radius:11px;padding:11px}
+.row small{color:var(--muted)}
+.notice{font-size:12px;color:#baf3d2;background:rgba(95,219,155,.08);border:1px solid rgba(95,219,155,.24);padding:11px;border-radius:10px;margin-bottom:14px}
+.modalbg{position:fixed;inset:0;background:rgba(0,0,0,.72);display:none;place-items:center;padding:16px;z-index:50} .modalbg.open{display:grid}
+.modal{width:min(600px,100%);background:#111c2f;border:1px solid #30425f;border-radius:16px;padding:18px}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:12px} label{display:block;color:var(--muted);font-size:11px;font-weight:700;margin:8px 0 5px}
+input,select,textarea{width:100%;background:#0c1627;color:var(--text);border:1px solid #30425f;border-radius:9px;padding:9px}
+.modalactions{display:flex;gap:8px;justify-content:flex-end;margin-top:14px}
+@media(max-width:760px){.app{padding:12px}.stats{grid-template-columns:1fr 1fr}.grid2{grid-template-columns:1fr}.row{grid-template-columns:82px 1fr}.row .btn{grid-column:1/-1}}
+@media print{.actions,.weekbar .btn,.row .btn{display:none!important}body{background:white;color:black}.card{box-shadow:none;border:0}.week>div{background:white;color:black}.lesson{color:black;background:#f5f5f5}.lesson span{color:#444}}
+</style>
+</head>
+<body>
+<div class="app">
+  <div class="top">
+    <div><h1>Teacher Timetable</h1><div class="sub">Mark Gray · Adcote School · two-week cycle</div></div>
+    <div class="actions">
+      <button class="btn" onclick="window.print()">Print</button>
+      <button class="btn" onclick="downloadBackup()">Download backup</button>
+      <button class="btn good" onclick="resetOriginal()">Reload original timetable</button>
+    </div>
+  </div>
+
+  <div class="notice">Your timetable is built directly into this page. It does not need to import or sync before the lessons appear.</div>
+
+  <div class="card weekbar">
+    <b>Timetable cycle:</b>
+    <button id="w1" class="btn primary" onclick="setWeek('W1')">Week 1</button>
+    <button id="w2" class="btn" onclick="setWeek('W2')">Week 2</button>
+    <span class="pill" id="weekLabel">Week 1</span>
+    <span class="pill">47 teaching lessons loaded</span>
+  </div>
+
+  <div class="stats">
+    <div class="stat"><small>Lessons this week</small><strong id="statLessons">0</strong></div>
+    <div class="stat"><small>Teaching time</small><strong id="statHours">0h</strong></div>
+    <div class="stat"><small>Classes/groups</small><strong id="statClasses">0</strong></div>
+    <div class="stat"><small>Activities</small><strong id="statActivities">0</strong></div>
+  </div>
+
+  <div class="card">
+    <div class="wrap"><div class="week" id="weekGrid"></div></div>
+  </div>
+
+  <div class="card">
+    <h3 style="margin-top:0">All lessons</h3>
+    <div class="list" id="lessonList"></div>
+  </div>
+</div>
+
+<div id="modalbg" class="modalbg" onclick="if(event.target===this)closeModal()">
+  <div class="modal">
+    <h3 id="modalTitle">Edit lesson</h3>
+    <input id="editId" type="hidden">
+    <div class="grid2">
+      <div><label>Week</label><select id="fWeek"><option value="W1">Week 1</option><option value="W2">Week 2</option></select></div>
+      <div><label>Day</label><select id="fDay"><option>Monday</option><option>Tuesday</option><option>Wednesday</option><option>Thursday</option><option>Friday</option></select></div>
+    </div>
+    <div class="grid2">
+      <div><label>Start</label><input id="fStart" type="time"></div>
+      <div><label>End</label><input id="fEnd" type="time"></div>
+    </div>
+    <label>Subject</label><input id="fSubject">
+    <div class="grid2">
+      <div><label>Class/group</label><input id="fClass"></div>
+      <div><label>Room</label><input id="fRoom"></div>
+    </div>
+    <div class="modalactions">
+      <button class="btn" onclick="closeModal()">Cancel</button>
+      <button class="btn primary" onclick="saveLesson()">Save</button>
+    </div>
+  </div>
+</div>
+
+<script>
+const ORIGINAL={"lessons":[{"id":"adc-w1-mon-0855-1","week":"W1","day":"Monday","start":"08:55","end":"09:55","subject":"Further Maths","className":"Y11-/Further Maths","room":"EAL","notes":"Imported from uploaded iSAMS timetable"},{"id":"adc-w1-wed-0855-2","week":"W1","day":"Wednesday","start":"08:55","end":"09:55","subject":"Science","className":"Y11-/Science C","room":"Physics Lab","notes":"Imported from uploaded iSAMS timetable"},{"id":"adc-w1-thu-0855-3","week":"W1","day":"Thursday","start":"08:55","end":"09:55","subject":"Biology","className":"Y10-Biology","room":"Physics Lab","notes":"Imported from uploaded iSAMS timetable"},{"id":"adc-w1-fri-0855-4","week":"W1","day":"Friday","start":"08:55","end":"09:55","subject":"Maths","className":"Y10-Mathematics G","room":"Physics Lab","notes":"Imported from uploaded iSAMS timetable"},{"id":"adc-w1-mon-0955-5","week":"W1","day":"Monday","start":"09:55","end":"10:55","subject":"Science","className":"Y9-/Science J","room":"Physics Lab","notes":"Imported from uploaded iSAMS timetable"},{"id":"adc-w1-tue-0955-6","week":"W1","day":"Tuesday","start":"09:55","end":"10:55","subject":"Science","className":"Y11-/Science C","room":"Physics Lab","notes":"Imported from uploaded iSAMS timetable"},{"id":"adc-w1-wed-0955-7","week":"W1","day":"Wednesday","start":"09:55","end":"10:55","subject":"Physics","className":"Y11-/Physics A","room":"Physics Lab","notes":"Imported from uploaded iSAMS timetable"},{"id":"adc-w1-thu-0955-8","week":"W1","day":"Thursday","start":"09:55","end":"10:55","subject":"Physics","className":"Y10-/Physic","room":"Physics Lab","notes":"Imported from uploaded iSAMS timetable"},{"id":"adc-w1-fri-0955-9","week":"W1","day":"Friday","start":"09:55","end":"10:55","subject":"Geography","className":"Y7-Geography","room":"Geography Room","notes":"Imported from uploaded iSAMS timetable"},{"id":"adc-w1-mon-1110-10","week":"W1","day":"Monday","start":"11:10","end":"12:10","subject":"Biology","className":"Y10-Biology","room":"Physics Lab","notes":"Imported from uploaded iSAMS timetable"},{"id":"adc-w1-tue-1110-11","week":"W1","day":"Tuesday","start":"11:10","end":"12:10","subject":"Science","className":"Y11-/Science D","room":"Science Lab","notes":"Imported from uploaded iSAMS timetable"},{"id":"adc-w1-wed-1110-12","week":"W1","day":"Wednesday","start":"11:10","end":"12:10","subject":"Physics","className":"Y11-/Physics A","room":"Physics Lab","notes":"Imported from uploaded iSAMS timetable"},{"id":"adc-w1-thu-1110-13","week":"W1","day":"Thursday","start":"11:10","end":"12:10","subject":"Physics","className":"Y10-/Physic","room":"Physics Lab","notes":"Imported from uploaded iSAMS timetable"},{"id":"adc-w1-mon-1210-14","week":"W1","day":"Monday","start":"12:10","end":"13:10","subject":"Biology","className":"Y10-Biology","room":"Physics Lab","notes":"Imported from uploaded iSAMS timetable"},{"id":"adc-w1-tue-1210-15","week":"W1","day":"Tuesday","start":"12:10","end":"13:10","subject":"Physics","className":"Y13-Physics","room":"Physics Lab","notes":"Imported from uploaded iSAMS timetable"},{"id":"adc-w1-wed-1210-16","week":"W1","day":"Wednesday","start":"12:10","end":"13:10","subject":"Physics","className":"Y12-Physics","room":"Physics Lab","notes":"Imported from uploaded iSAMS timetable"},{"id":"adc-w1-fri-1210-17","week":"W1","day":"Friday","start":"12:10","end":"13:10","subject":"Physics","className":"Y10-/Physic","room":"Physics Lab","notes":"Imported from uploaded iSAMS timetable"},{"id":"adc-w1-mon-1405-18","week":"W1","day":"Monday","start":"14:05","end":"15:05","subject":"Science","className":"Y11-/Science C","room":"Physics Lab","notes":"Imported from uploaded iSAMS timetable"},{"id":"adc-w1-tue-1405-19","week":"W1","day":"Tuesday","start":"14:05","end":"15:05","subject":"Physics","className":"Y13-Physics","room":"Physics Lab","notes":"Imported from uploaded iSAMS timetable"},{"id":"adc-w1-wed-1405-20","week":"W1","day":"Wednesday","start":"14:05","end":"15:05","subject":"Physics","className":"Y12-Physics","room":"Physics Lab","notes":"Imported from uploaded iSAMS timetable"},{"id":"adc-w1-mon-1505-21","week":"W1","day":"Monday","start":"15:05","end":"16:05","subject":"Science","className":"Y11-/Science D","room":"Science Lab","notes":"Imported from uploaded iSAMS timetable"},{"id":"adc-w1-tue-1505-22","week":"W1","day":"Tuesday","start":"15:05","end":"16:05","subject":"Physics","className":"Y13-Physics","room":"Physics Lab","notes":"Imported from uploaded iSAMS timetable"},{"id":"adc-w1-wed-1505-23","week":"W1","day":"Wednesday","start":"15:05","end":"16:05","subject":"Physics","className":"Y12-Physics","room":"Physics Lab","notes":"Imported from uploaded iSAMS timetable"},{"id":"adc-w2-mon-0855-24","week":"W2","day":"Monday","start":"08:55","end":"09:55","subject":"Physics","className":"Y13-Physics","room":"Physics Lab","notes":"Imported from uploaded iSAMS timetable"},{"id":"adc-w2-tue-0855-25","week":"W2","day":"Tuesday","start":"08:55","end":"09:55","subject":"Science","className":"Y11-/Science C","room":"Physics Lab","notes":"Imported from uploaded iSAMS timetable"},{"id":"adc-w2-wed-0855-26","week":"W2","day":"Wednesday","start":"08:55","end":"09:55","subject":"Physics","className":"Y11-/Physics A","room":"Physics Lab","notes":"Imported from uploaded iSAMS timetable"},{"id":"adc-w2-fri-0855-27","week":"W2","day":"Friday","start":"08:55","end":"09:55","subject":"Maths","className":"Y10-Mathematics G","room":"Physics Lab","notes":"Imported from uploaded iSAMS timetable"},{"id":"adc-w2-mon-0955-28","week":"W2","day":"Monday","start":"09:55","end":"10:55","subject":"Physics","className":"Y13-Physics","room":"Physics Lab","notes":"Imported from uploaded iSAMS timetable"},{"id":"adc-w2-tue-0955-29","week":"W2","day":"Tuesday","start":"09:55","end":"10:55","subject":"Science","className":"Y11-/Science D","room":"Science Lab","notes":"Imported from uploaded iSAMS timetable"},{"id":"adc-w2-wed-0955-30","week":"W2","day":"Wednesday","start":"09:55","end":"10:55","subject":"Physics","className":"Y11-/Physics A","room":"Physics Lab","notes":"Imported from uploaded iSAMS timetable"},{"id":"adc-w2-fri-0955-31","week":"W2","day":"Friday","start":"09:55","end":"10:55","subject":"Science","className":"Y7-/Science","room":"Physics Lab","notes":"Imported from uploaded iSAMS timetable"},{"id":"adc-w2-mon-1110-32","week":"W2","day":"Monday","start":"11:10","end":"12:10","subject":"Physics","className":"Y10-/Physic","room":"Physics Lab","notes":"Imported from uploaded iSAMS timetable"},{"id":"adc-w2-tue-1110-33","week":"W2","day":"Tuesday","start":"11:10","end":"12:10","subject":"Science","className":"Y11-/Science D","room":"Science Lab","notes":"Imported from uploaded iSAMS timetable"},{"id":"adc-w2-wed-1110-34","week":"W2","day":"Wednesday","start":"11:10","end":"12:10","subject":"Science","className":"Y11-/Science D","room":"Science Lab","notes":"Imported from uploaded iSAMS timetable"},{"id":"adc-w2-fri-1110-35","week":"W2","day":"Friday","start":"11:10","end":"12:10","subject":"Science","className":"Y9-/Science J","room":"Physics Lab","notes":"Imported from uploaded iSAMS timetable"},{"id":"adc-w2-mon-1210-36","week":"W2","day":"Monday","start":"12:10","end":"13:10","subject":"Science","className":"Y11-/Science C","room":"Physics Lab","notes":"Imported from uploaded iSAMS timetable"},{"id":"adc-w2-tue-1210-37","week":"W2","day":"Tuesday","start":"12:10","end":"13:10","subject":"Physics","className":"Y11-/Physics A","room":"Physics Lab","notes":"Imported from uploaded iSAMS timetable"},{"id":"adc-w2-wed-1210-38","week":"W2","day":"Wednesday","start":"12:10","end":"13:10","subject":"Physics","className":"Y12-Physics","room":"Physics Lab","notes":"Imported from uploaded iSAMS timetable"},{"id":"adc-w2-fri-1210-39","week":"W2","day":"Friday","start":"12:10","end":"13:10","subject":"Physics","className":"Y10-/Physic","room":"Physics Lab","notes":"Imported from uploaded iSAMS timetable"},{"id":"adc-w2-mon-1405-40","week":"W2","day":"Monday","start":"14:05","end":"15:05","subject":"Biology","className":"Y10-Biology","room":"Physics Lab","notes":"Imported from uploaded iSAMS timetable"},{"id":"adc-w2-tue-1405-41","week":"W2","day":"Tuesday","start":"14:05","end":"15:05","subject":"Physics","className":"Y13-Physics","room":"Physics Lab","notes":"Imported from uploaded iSAMS timetable"},{"id":"adc-w2-wed-1405-42","week":"W2","day":"Wednesday","start":"14:05","end":"15:05","subject":"Physics","className":"Y12-Physics","room":"Physics Lab","notes":"Imported from uploaded iSAMS timetable"},{"id":"adc-w2-fri-1405-43","week":"W2","day":"Friday","start":"14:05","end":"15:05","subject":"Maths","className":"Y10-Mathematics G","room":"Physics Lab","notes":"Imported from uploaded iSAMS timetable"},{"id":"adc-w2-mon-1505-44","week":"W2","day":"Monday","start":"15:05","end":"16:05","subject":"Biology","className":"Y10-Biology","room":"Physics Lab","notes":"Imported from uploaded iSAMS timetable"},{"id":"adc-w2-tue-1505-45","week":"W2","day":"Tuesday","start":"15:05","end":"16:05","subject":"Physics","className":"Y13-Physics","room":"Physics Lab","notes":"Imported from uploaded iSAMS timetable"},{"id":"adc-w2-wed-1505-46","week":"W2","day":"Wednesday","start":"15:05","end":"16:05","subject":"Physics","className":"Y12-Physics","room":"Physics Lab","notes":"Imported from uploaded iSAMS timetable"},{"id":"adc-w2-fri-1505-47","week":"W2","day":"Friday","start":"15:05","end":"16:05","subject":"Maths","className":"Y10-Mathematics G","room":"Physics Lab","notes":"Imported from uploaded iSAMS timetable"}],"periods":[["08:55","09:55"],["09:55","10:55"],["11:10","12:10"],["12:10","13:10"],["14:05","15:05"],["15:05","16:05"]],"activities":[{"week":"W1","day":"Monday","start":"16:30","end":"17:30","subject":"STEM Lego Robotics","className":"4 Students","room":"Science Lab","type":"Activity"},{"week":"W2","day":"Monday","start":"16:30","end":"17:30","subject":"STEM Lego Robotics","className":"4 Students","room":"Science Lab","type":"Activity"}]};
+const DAYS=['Monday','Tuesday','Wednesday','Thursday','Friday'];
+const KEY='markGrayStandaloneTimetable_v1';
+let currentWeek='W1';
+function clone(x){return JSON.parse(JSON.stringify(x))}
+function load(){
+  try{
+    const s=JSON.parse(localStorage.getItem(KEY)||'null');
+    if(s&&Array.isArray(s.lessons)&&s.lessons.length>=40)return s;
+  }catch(e){}
+  return clone(ORIGINAL);
+}
+let state=load();
+function saveState(){localStorage.setItem(KEY,JSON.stringify(state));render()}
+function esc(s=''){return String(s).replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]))}
+function mins(t){const m=String(t).match(/(\d+):(\d+)/);return m?(+m[1]*60 + +m[2]):0}
+function setWeek(w){currentWeek=w;render()}
+function render(){
+  document.getElementById('w1').classList.toggle('primary',currentWeek==='W1');
+  document.getElementById('w2').classList.toggle('primary',currentWeek==='W2');
+  document.getElementById('weekLabel').textContent=currentWeek==='W1'?'Week 1':'Week 2';
+  const arr=state.lessons.filter(x=>x.week===currentWeek);
+  document.getElementById('statLessons').textContent=arr.length;
+  document.getElementById('statHours').textContent=(arr.reduce((a,x)=>a+mins(x.end)-mins(x.start),0)/60).toFixed(0)+'h';
+  document.getElementById('statClasses').textContent=new Set(arr.map(x=>x.className).filter(Boolean)).size;
+  document.getElementById('statActivities').textContent=state.activities.filter(x=>x.week===currentWeek).length;
+
+  const slots=state.periods;
+  let h='<div class="head">Time</div>'+DAYS.map(d=>`<div class="head">${d}</div>`).join('');
+  for(const [start,end] of slots){
+    h+=`<div class="time">${start}<br><span>${end}</span></div>`;
+    for(const day of DAYS){
+      const items=arr.filter(x=>x.day===day&&x.start===start);
+      h+=`<div>${items.length?items.map(x=>`<div class="lesson" onclick="editLesson('${x.id}')"><b>${esc(x.subject)}</b><span>${esc(x.className)} · ${esc(x.room)}</span></div>`).join(''):'<div class="empty">—</div>'}</div>`;
+    }
+  }
+  h+=`<div class="time">16:30<br><span>17:30</span></div>`;
+  for(const day of DAYS){
+    const items=state.activities.filter(x=>x.week===currentWeek&&x.day===day);
+    h+=`<div>${items.length?items.map(x=>`<div class="lesson activity"><b>${esc(x.subject)}</b><span>${esc(x.className)} · ${esc(x.room)}</span></div>`).join(''):'<div class="empty">—</div>'}</div>`;
+  }
+  document.getElementById('weekGrid').innerHTML=h;
+
+  document.getElementById('lessonList').innerHTML=arr
+    .slice().sort((a,b)=>DAYS.indexOf(a.day)-DAYS.indexOf(b.day)||mins(a.start)-mins(b.start))
+    .map(x=>`<div class="row"><div><b>${x.day.slice(0,3)}</b><br><small>${x.start}–${x.end}</small></div><div><b>${esc(x.subject)}</b><br><small>${esc(x.className)} · ${esc(x.room)}</small></div><button class="btn" onclick="editLesson('${x.id}')">Edit</button></div>`).join('');
+}
+function editLesson(id){
+  const x=state.lessons.find(l=>l.id===id); if(!x)return;
+  editId.value=x.id; fWeek.value=x.week; fDay.value=x.day; fStart.value=x.start; fEnd.value=x.end; fSubject.value=x.subject; fClass.value=x.className; fRoom.value=x.room;
+  modalbg.classList.add('open');
+}
+function closeModal(){modalbg.classList.remove('open')}
+function saveLesson(){
+  const i=state.lessons.findIndex(x=>x.id===editId.value); if(i<0)return;
+  state.lessons[i]={...state.lessons[i],week:fWeek.value,day:fDay.value,start:fStart.value,end:fEnd.value,subject:fSubject.value.trim(),className:fClass.value.trim(),room:fRoom.value.trim()};
+  saveState();closeModal();
+}
+function resetOriginal(){
+  if(confirm('Reload the original 47-lesson timetable from the uploaded document?')){state=clone(ORIGINAL);localStorage.setItem(KEY,JSON.stringify(state));currentWeek='W1';render();}
+}
+function downloadBackup(){
+  const blob=new Blob([JSON.stringify(state,null,2)],{type:'application/json'});
+  const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='mark-gray-timetable-backup.json';a.click();setTimeout(()=>URL.revokeObjectURL(a.href),500);
+}
+render();
+</script>
+</body>
+</html>
