@@ -1,6 +1,6 @@
 (async function loadTimetableApp(){
-  const build='2026-09-16-mark-gray-w1w2-v1';
-  const files=['core.js','parser.js','import.js'];
+  const build='2026-09-16-mark-gray-force-seed-v2';
+  const files=['seed-data.js','core.js','parser.js','import.js'];
   for(const src of files){
     await new Promise((resolve,reject)=>{
       const script=document.createElement('script');
