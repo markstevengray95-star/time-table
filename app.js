@@ -1,5 +1,5 @@
 (async function loadTimetableApp(){
-  const build='2026-09-16-full-extract-2';
+  const build='2026-09-16-mark-gray-w1w2-v1';
   const files=['core.js','parser.js','import.js'];
   for(const src of files){
     await new Promise((resolve,reject)=>{
